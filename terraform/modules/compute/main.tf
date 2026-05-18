@@ -99,7 +99,7 @@ resource "aws_launch_template" "backend" {
 resource "aws_autoscaling_group" "backend" {
   name                = "starttech-backend-asg"
   target_group_arns   = [aws_lb_target_group.backend.arn]
-  vpc_zone_identifier = var.public_subnets
+  vpc_zone_identifier = var.public_subnets # <-- FIXED: Swapped private for public subnets
   desired_capacity    = 2
   max_size            = 4
   min_size            = 1
