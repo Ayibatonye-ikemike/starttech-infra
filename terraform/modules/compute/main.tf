@@ -87,18 +87,21 @@ resource "aws_launch_template" "backend" {
               systemctl start docker
               systemctl enable docker
               docker pull ${var.docker_username}/much-to-do-backend:latest
-              if [ \$(docker ps -a -q -f name=app) ]; then
-                  docker rm -f app
-              fi
+              
+              # Force clean any container using port 8080 matching local test configurations
+              docker rm -f local-app-test || true
+              
               set -e
-              docker run -d --name app -p 8080:8080 \
-                -e MONGO_URI="${var.mongo_uri}" \
-                -e PORT="8080" \
-                -e HOST="0.0.0.0" \
-                -e DB_NAME="much-to-do" \
-                -e JWT_SECRET_KEY="AssessmentProductionSecretKeyChangeMe123!" \
-                -e USE_REDIS="false" \
-                -e REDIS_HOST="127.0.0.1" \
+              # Run the exact configuration that worked on your MacBook
+              docker run -d --name local-app-test \
+                --restart always \
+                -p 8080:8080 \
+                -e MONGO_URI='mongodb+srv://tonye:Tonye1932014@starttech-cluster.p5oakcb.mongodb.net/?appName=starttech-cluster' \
+                -e PORT='8080' \
+                -e HOST='0.0.0.0' \
+                -e DB_NAME='starttech' \
+                -e JWT_SECRET_KEY='StagingStagingSecretKey123' \
+                -e USE_REDIS='false' \
                 ${var.docker_username}/much-to-do-backend:latest
               EOF
   )
