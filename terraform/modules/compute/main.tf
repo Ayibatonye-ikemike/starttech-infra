@@ -71,38 +71,10 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# NATIVE SECURE IAM CONFIGURATION THAT AVOIDS CONTEXT COLLISION FREEZES
-resource "aws_iam_role" "ec2_role" {
-  name = "starttech-ec2-ssm-role-profile"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action    = "sts:AssumeRole"
-      Effect    = "Allow"
-      Principal = { Service = "://amazonaws.com" }
-    }]
-  })
-}
-
-# Attach core Systems Manager permissions to the role
-resource "aws_iam_role_policy_attachment" "ssm_core_attach" {
-  role       = aws_iam_role.ec2_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-# Build the instance profile container object
-resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "starttech-ec2-ssm-instance-profile"
-  role = aws_iam_role.ec2_role.name
-}
-
 resource "aws_launch_template" "backend" {
   name_prefix   = "starttech-backend-"
   image_id      = "ami-0c7217cdde317cfec" # Ubuntu 22.04 LTS us-east-1
   instance_type = "t3.micro"
-  
-  # Point directly to your brand new valid native instance profile container
-  iam_instance_profile { name = aws_iam_instance_profile.ec2_profile.name }
 
   network_interfaces {
     associate_public_ip_address = true
@@ -110,25 +82,20 @@ resource "aws_launch_template" "backend" {
   }
   user_data = base64encode(<<-EOF
               #!/bin/bash
+              set +e
               apt-get update -y
-              apt-get install -y docker.io unzip
+              apt-get install -y docker.io
               systemctl start docker
               systemctl enable docker
-
-              # Install lightweight AWS CLI toolkit layers cleanly
-              curl "https://amazonaws.com" -o "awscliv2.zip"
-              unzip awscliv2.zip
-              ./aws/install --update
-
-              # Securely retrieve parameter from AWS encrypted parameter storage string
-              SECURE_MONGO_URI=\$(aws ssm get-parameter --name "/starttech/production/mongo_uri" --with-decryption --region us-east-1 --query "Parameter.Value" --output text)
-
+              docker pull ${var.docker_username}/much-to-do-backend:latest
+              
               docker rm -f local-app-test || true
               
+              set -e
               docker run -d --name local-app-test \
                 --restart always \
                 -p 8080:8080 \
-                -e MONGO_URI="\$SECURE_MONGO_URI" \
+                -e MONGO_URI='mongodb+srv://tonye:Tonye1932014@starttech-cluster.p5oakcb.mongodb.net/?appName=starttech-cluster' \
                 -e PORT='8080' \
                 -e HOST='0.0.0.0' \
                 -e DB_NAME='starttech' \
