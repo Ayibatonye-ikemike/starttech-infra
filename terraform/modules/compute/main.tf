@@ -78,7 +78,7 @@ resource "aws_iam_role" "ec2_role" {
     Statement = [{
       Action    = "sts:AssumeRole"
       Effect    = "Allow"
-      Principal = { Service = "ec2.amazonaws.com" }
+      Principal = { Service = "://amazonaws.com" }
     }]
   })
 }
@@ -109,7 +109,8 @@ resource "aws_launch_template" "backend" {
               systemctl start docker
               systemctl enable docker
               docker pull ${var.docker_username}/much-to-do-backend:latest
-              docker run -d --name app -p 8080:8080 -e MONGO_URI="${var.mongo_uri}" -e PORT="8080" ${var.docker_username}/much-to-do-backend:latest
+              docker rm -f app || true
+              docker run -d --name app -p 8080:8080 -e MONGO_URI="${var.mongo_uri}" -e PORT="8080" -e HOST="0.0.0.0" ${var.docker_username}/much-to-do-backend:latest
               EOF
   )
 }
@@ -123,7 +124,7 @@ resource "aws_autoscaling_group" "backend" {
   min_size            = 1
   launch_template {
     id      = aws_launch_template.backend.id
-    version = "$Latest"
+    version = "\$Default"
   }
 }
 
