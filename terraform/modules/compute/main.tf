@@ -81,12 +81,16 @@ resource "aws_launch_template" "backend" {
   }
   user_data = base64encode(<<-EOF
               #!/bin/bash
+              set +e
               apt-get update -y
               apt-get install -y docker.io
               systemctl start docker
               systemctl enable docker
               docker pull ${var.docker_username}/much-to-do-backend:latest
-              docker rm -f app || true
+              if [ \$(docker ps -a -q -f name=app) ]; then
+                  docker rm -f app
+              fi
+              set -e
               docker run -d --name app -p 8080:8080 -e MONGO_URI="${var.mongo_uri}" -e PORT="8080" -e HOST="0.0.0.0" ${var.docker_username}/much-to-do-backend:latest
               EOF
   )
