@@ -71,32 +71,79 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+# CREATE CLEAN BASELINE IAM STRUCTURE TO PERMIT DYNAMIC LOOKUPS
+resource "aws_iam_role" "ec2_role" {
+  name = "starttech-ec2-ssm-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "://amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_policy" "ssm_read" {
+  name        = "starttech-ssm-read-policy"
+  description = "Allows EC2 instances to retrieve secure secrets at runtime"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["ssm:GetParameter"]
+        Resource = "arn:aws:ssm:us-east-1:*:parameter/starttech/production/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ssm_attach" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = aws_iam_policy.ssm_read.arn
+}
+
+resource "aws_iam_role_policy_attachment" "cw_attach" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+resource "aws_iam_instance_profile" "ec2_profile" {
+  name = "starttech-ec2-ssm-profile"
+  role = aws_iam_role.ec2_role.name
+}
+
 resource "aws_launch_template" "backend" {
   name_prefix   = "starttech-backend-"
   image_id      = "ami-0c7217cdde317cfec" # Ubuntu 22.04 LTS us-east-1
   instance_type = "t3.micro"
+  iam_instance_profile { name = aws_iam_instance_profile.ec2_profile.name }
   network_interfaces {
     associate_public_ip_address = true
     security_groups             = [aws_security_group.ec2.id]
   }
   user_data = base64encode(<<-EOF
               #!/bin/bash
-              set +e
               apt-get update -y
-              apt-get install -y docker.io
+              apt-get install -y docker.io unzip
               systemctl start docker
               systemctl enable docker
-              docker pull ${var.docker_username}/much-to-do-backend:latest
-              
-              # Force clean any container using port 8080 matching local test configurations
+
+              # Install lightweight AWS CLI cleanly onto host instance 
+              curl "https://amazonaws.com" -o "awscliv2.zip"
+              unzip awscliv2.zip
+              ./aws/install --update
+
+              # Securely fetch credentials directly out of AWS encrypted parameters at boot time
+              SECURE_MONGO_URI=\$(aws ssm get-parameter --name "/starttech/production/mongo_uri" --with-decryption --region us-east-1 --query "Parameter.Value" --output text)
+
               docker rm -f local-app-test || true
               
-              set -e
-              # Run the exact configuration that worked on your MacBook
               docker run -d --name local-app-test \
                 --restart always \
                 -p 8080:8080 \
-                -e MONGO_URI='mongodb+srv://tonye:Tonye1932014@starttech-cluster.p5oakcb.mongodb.net/?appName=starttech-cluster' \
+                -e MONGO_URI="\$SECURE_MONGO_URI" \
                 -e PORT='8080' \
                 -e HOST='0.0.0.0' \
                 -e DB_NAME='starttech' \
