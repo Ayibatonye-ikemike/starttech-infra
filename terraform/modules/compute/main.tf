@@ -124,7 +124,7 @@ resource "aws_autoscaling_group" "backend" {
   min_size            = 1
   launch_template {
     id      = aws_launch_template.backend.id
-    version = "\$Default"
+    version = "$Default"
   }
 }
 
