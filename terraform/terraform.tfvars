@@ -1,0 +1,5 @@
+aws_region      = "us-east-1"
+environment     = "production"
+project_name    = "starttech"
+docker_username = "ayibatonye"
+mongo_uri       = "mongodb+srv://tonye:Tonye21932014@starttech-cluster.p5oakcb.mongodb.net/?appName=starttech-cluster"
