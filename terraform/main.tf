@@ -2,7 +2,7 @@ provider "aws" { region = "us-east-1" }
 
 terraform {
   backend "s3" {
-    bucket = "starttech-terraform-state-bucket-unique"
+    bucket = "starttech-terraform-state-bucket-tonye1"
     key    = "state.tfstate"
     region = "us-east-1"
   }
