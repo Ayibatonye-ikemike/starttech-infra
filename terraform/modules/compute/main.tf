@@ -71,33 +71,10 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-resource "aws_iam_role" "ec2_role" {
-  name = "starttech-ec2-cloudwatch-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action    = "sts:AssumeRole"
-      Effect    = "Allow"
-      Principal = { Service = "://amazonaws.com" }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "cw_policy" {
-  role       = aws_iam_role.ec2_role.name
-  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
-}
-
-resource "aws_iam_instance_profile" "ec2_profile" {
-  name = "starttech-ec2-profile"
-  role = aws_iam_role.ec2_role.name
-}
-
 resource "aws_launch_template" "backend" {
   name_prefix   = "starttech-backend-"
   image_id      = "ami-0c7217cdde317cfec" # Ubuntu 22.04 LTS us-east-1
   instance_type = "t3.micro"
-  iam_instance_profile { name = aws_iam_instance_profile.ec2_profile.name }
   network_interfaces {
     associate_public_ip_address = true
     security_groups             = [aws_security_group.ec2.id]
@@ -124,7 +101,7 @@ resource "aws_autoscaling_group" "backend" {
   min_size            = 1
   launch_template {
     id      = aws_launch_template.backend.id
-    version = "$Default"
+    version = "$Latest"
   }
 }
 
