@@ -91,7 +91,15 @@ resource "aws_launch_template" "backend" {
                   docker rm -f app
               fi
               set -e
-              docker run -d --name app -p 8080:8080 -e MONGO_URI="${var.mongo_uri}" -e PORT="8080" -e HOST="0.0.0.0" ${var.docker_username}/much-to-do-backend:latest
+              docker run -d --name app -p 8080:8080 \
+                -e MONGO_URI="${var.mongo_uri}" \
+                -e PORT="8080" \
+                -e HOST="0.0.0.0" \
+                -e DB_NAME="much-to-do" \
+                -e JWT_SECRET_KEY="AssessmentProductionSecretKeyChangeMe123!" \
+                -e USE_REDIS="false" \
+                -e REDIS_HOST="127.0.0.1" \
+                ${var.docker_username}/much-to-do-backend:latest
               EOF
   )
 }
@@ -99,7 +107,7 @@ resource "aws_launch_template" "backend" {
 resource "aws_autoscaling_group" "backend" {
   name                = "starttech-backend-asg"
   target_group_arns   = [aws_lb_target_group.backend.arn]
-  vpc_zone_identifier = var.public_subnets # <-- FIXED: Swapped private for public subnets
+  vpc_zone_identifier = var.public_subnets
   desired_capacity    = 2
   max_size            = 4
   min_size            = 1
