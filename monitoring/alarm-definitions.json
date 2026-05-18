@@ -1,0 +1,10 @@
+{
+  "AlarmName": "High-CPU-Usage",
+  "MetricName": "CPUUtilization",
+  "Namespace": "AWS/EC2",
+  "Statistic": "Average",
+  "Period": 60,
+  "EvaluationPeriods": 1,
+  "Threshold": 80.0,
+  "ComparisonOperator": "GreaterThanOrEqualToThreshold"
+}

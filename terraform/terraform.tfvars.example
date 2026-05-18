@@ -1,0 +1,2 @@
+docker_username = "your_dockerhub_username"
+mongo_uri       = "your_mongodb_atlas_connection_string"

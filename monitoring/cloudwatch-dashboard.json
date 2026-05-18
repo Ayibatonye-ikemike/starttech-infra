@@ -1,0 +1,14 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "properties": {
+        "metrics": [["AWS/EC2", "CPUUtilization", "AutoScalingGroupName", "starttech-backend-asg"]],
+        "period": 300,
+        "stat": "Average",
+        "region": "us-east-1",
+        "title": "ASG Fleet CPU Performance"
+      }
+    }
+  ]
+}
