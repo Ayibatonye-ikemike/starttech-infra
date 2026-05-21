@@ -44,6 +44,25 @@ resource "aws_cloudfront_distribution" "cdn" {
   viewer_certificate { cloudfront_default_certificate = true }
 }
 
+resource "aws_s3_bucket_policy" "frontend_policy" {
+  bucket = aws_s3_bucket.frontend.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowCloudFrontOAIRead"
+        Effect    = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${aws_cloudfront_origin_access_identity.oai.id}"
+        }
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.frontend.arn}/*"
+      }
+    ]
+  })
+}
+
 resource "aws_security_group" "redis" {
   name   = "starttech-redis-sg"
   vpc_id = var.vpc_id
